@@ -5,8 +5,8 @@ class Sechub < Formula
     sha256 "2476f3d3144bf2781262d5af2f4f1dcb52bf4fabde98b13248f11ae1d59c7340"  # Generate this with `shasum -a 256 filename`
   
     def install
-      bin.install "sechub"
-    end
+        bin.install "homebrew-sechub-1.0.0/sechub.sh" => "sechub"
+      end
   
     test do
       system "#{bin}/sechub", "--help"  # Replace with a command that verifies installation
