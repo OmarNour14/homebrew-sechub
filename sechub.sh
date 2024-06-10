@@ -36,7 +36,8 @@ function check_aws_config {
 }
 
 function get_product_arn {
-    case "$1" in
+    local product_type=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    case "$product_type" in
         snyk)
             echo "arn:aws:securityhub:$REGION::product/snyk/snyk"
             ;;
@@ -66,6 +67,7 @@ function handle_command {
 
     check_aws_config
 
+    finding_ids=$(echo "$finding_ids" | tr -d '[:space:]')
     IFS=',' read -r -a finding_id_array <<< "$finding_ids"
 
     for finding_id in "${finding_id_array[@]}"; do
@@ -83,9 +85,11 @@ function handle_command {
     case "$command" in
         add-note)
             local note_text="$second_arg"
+            local current_date=$(date +"%d/%m/%Y")
+            local full_note_text="$current_date - \"$note_text\""
             local payload=$(jq -n \
                 --argjson identifiers "$identifiers_json" \
-                --arg noteText "$note_text" \
+                --arg noteText "$full_note_text" \
                 --arg updatedBy "securityhub-cli" \
                 '{
                     FindingIdentifiers: $identifiers,
@@ -97,7 +101,7 @@ function handle_command {
             )
             ;;
         update-status)
-            local new_status="$second_arg"
+            local new_status=$(echo "$second_arg" | tr '[:lower:]' '[:upper:]')
             local allowed_statuses=("NEW" "NOTIFIED" "SUPPRESSED" "RESOLVED")
             if [[ ! " ${allowed_statuses[@]} " =~ " ${new_status} " ]]; then
                 echo "Invalid status value: $new_status. Allowed values are: ${allowed_statuses[*]}"
