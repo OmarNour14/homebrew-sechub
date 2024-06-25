@@ -20,7 +20,7 @@ Commands:
 
 Arguments:
   finding-id      The ID of the finding to update.
-  batch           A comma-separated list of finding IDs to update.
+  batch           A space-separated list of finding IDs to update.
   note-text       The text of the note to attach to the finding.
   status          The new status to set for the finding's workflow.
   product-type    The type of product (optional, default: default). Accepted values: snyk, securityhub, default.
@@ -69,8 +69,7 @@ function handle_add_note {
 
     check_aws_config
 
-    finding_ids=$(echo "$finding_ids" | tr -d '[:space:]')
-    IFS=',' read -r -a finding_id_array <<< "$finding_ids"
+    IFS=' ' read -r -a finding_id_array <<< "$finding_ids"
 
     for finding_id in "${finding_id_array[@]}"; do
         check_finding_exists "$finding_id"
@@ -82,12 +81,12 @@ function handle_add_note {
     for finding_id in "${finding_id_array[@]}"; do
         identifiers+=("{\"Id\": \"$finding_id\", \"ProductArn\": \"$product_arn\"}")
     done
-    local identifiers_json=$(echo "${identifiers[@]}" | jq -s '.')
+    local identifiers_json=$(IFS=,; echo "${identifiers[*]}")
 
     local current_date=$(date +"%d/%m/%Y")
     local full_note_text="$current_date - \"$note_text\""
     local payload=$(jq -n \
-        --argjson identifiers "$identifiers_json" \
+        --argjson identifiers "[$identifiers_json]" \
         --arg noteText "$full_note_text" \
         --arg updatedBy "securityhub-cli" \
         '{
@@ -117,8 +116,7 @@ function handle_update_status {
 
     check_aws_config
 
-    finding_ids=$(echo "$finding_ids" | tr -d '[:space:]')
-    IFS=',' read -r -a finding_id_array <<< "$finding_ids"
+    IFS=' ' read -r -a finding_id_array <<< "$finding_ids"
 
     for finding_id in "${finding_id_array[@]}"; do
         check_finding_exists "$finding_id"
@@ -130,7 +128,7 @@ function handle_update_status {
     for finding_id in "${finding_id_array[@]}"; do
         identifiers+=("{\"Id\": \"$finding_id\", \"ProductArn\": \"$product_arn\"}")
     done
-    local identifiers_json=$(echo "${identifiers[@]}" | jq -s '.')
+    local identifiers_json=$(IFS=,; echo "${identifiers[*]}")
 
     local allowed_statuses=("NEW" "NOTIFIED" "SUPPRESSED" "RESOLVED")
     if [[ ! " ${allowed_statuses[@]} " =~ " ${new_status} " ]]; then
@@ -139,7 +137,7 @@ function handle_update_status {
     fi
 
     local payload=$(jq -n \
-        --argjson identifiers "$identifiers_json" \
+        --argjson identifiers "[$identifiers_json]" \
         --arg status "$new_status" \
         '{
             FindingIdentifiers: $identifiers,
@@ -168,8 +166,7 @@ function handle_update_status_add_note {
 
     check_aws_config
 
-    finding_ids=$(echo "$finding_ids" | tr -d '[:space:]')
-    IFS=',' read -r -a finding_id_array <<< "$finding_ids"
+    IFS=' ' read -r -a finding_id_array <<< "$finding_ids"
 
     for finding_id in "${finding_id_array[@]}"; do
         check_finding_exists "$finding_id"
@@ -181,7 +178,7 @@ function handle_update_status_add_note {
     for finding_id in "${finding_id_array[@]}"; do
         identifiers+=("{\"Id\": \"$finding_id\", \"ProductArn\": \"$product_arn\"}")
     done
-    local identifiers_json=$(echo "${identifiers[@]}" | jq -s '.')
+    local identifiers_json=$(IFS=,; echo "${identifiers[*]}")
 
     local allowed_statuses=("NEW" "NOTIFIED" "SUPPRESSED" "RESOLVED")
     if [[ ! " ${allowed_statuses[@]} " =~ " ${new_status} " ]]; then
@@ -192,7 +189,7 @@ function handle_update_status_add_note {
     local current_date=$(date +"%d/%m/%Y")
     local full_note_text="$current_date - \"$note_text\""
     local payload=$(jq -n \
-        --argjson identifiers "$identifiers_json" \
+        --argjson identifiers "[$identifiers_json]" \
         --arg status "$new_status" \
         --arg noteText "$full_note_text" \
         --arg updatedBy "securityhub-cli" \
